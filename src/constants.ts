@@ -1,1 +1,1 @@
-export const SYSTEM_PROMPT = `YOUR_SYSTEM_PROMPT`;
+export const MODEL_NAME = "meta-llama/llama-3.1-8b-instruct";

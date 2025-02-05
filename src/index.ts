@@ -1,16 +1,15 @@
 import TelegramBot from "node-telegram-bot-api";
-import { OpenAI } from "openai";
 import dotenv from "dotenv";
+import Ainize from "@ainize-team/ainize-js";
 
-import { SYSTEM_PROMPT } from "./constants";
+import { MODEL_NAME } from "./constants";
 
 dotenv.config();
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const ainize = new Ainize(1);
+const privateKey = process.env.AIN_PRIVATE_KEY || Ainize.createAinAccount().private_key;
+ainize.login(privateKey);
 
 bot.onText(/\/echo (.+)/, (msg, match) => {
   const chatId = msg.chat.id;
@@ -22,18 +21,13 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userMessage = msg.text;
-
   try {
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage },
-      ],
-    });
-
-    const botMessage = resp.choices[0].message.content;
-
+    const model = await ainize.getModel(MODEL_NAME);
+    const response = await model.request({ prompt: userMessage });
+    if (response.status !== 'SUCCESS') {
+      throw new Error(`Failed to get response from model: ${response.status}`);
+    }
+    const botMessage = response.data;
     bot.sendMessage(chatId, botMessage);
   } catch (error) {
     console.error(error);
